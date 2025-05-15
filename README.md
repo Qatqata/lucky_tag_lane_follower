@@ -1,47 +1,116 @@
-# Template: template-ros
+# AprilTag Detection with Duckiebot — ROS Template
 
-This template provides a boilerplate repository
-for developing ROS-based software in Duckietown.
+This repository is based on the [Duckietown ROS Template](https://github.com/duckietown/template-ros) and is used to detect AprilTags on a Duckiebot. The robot can interpret tag positions and publish relevant messages or transformations. Originally intended for SLAM, this project shifted focus solely to AprilTag detection and reaction due to time constraints.
 
-**NOTE:** If you want to develop software that does not use
-ROS, check out [this template](https://github.com/duckietown/template-basic).
+---
 
+## 🚀 Quick Start
 
-## How to use it
+Ensure you're in a development container and source the environment.
 
-### 1. Fork this repository
+### Build the container
 
-Use the fork button in the top-right corner of the github page to fork this template repository.
+```bash
+dts devel build -H lucky -f
+```
 
+### Run the publisher node
 
-### 2. Create a new repository
+```bash
+dts devel run -H lucky -L tag_publisher_launch -n publisher
+```
 
-Create a new repository on github.com while
-specifying the newly forked template repository as
-a template for your new repository.
+### Run the subscriber node
 
+```bash
+dts devel run -H lucky -L tag_subscriber_launch -n subscriber
+```
 
-### 3. Define dependencies
+---
 
-List the dependencies in the files `dependencies-apt.txt` and
-`dependencies-py3.txt` (apt packages and pip packages respectively).
+## 🧠 Functionality
 
+The system uses the robot's camera to:
 
-### 4. Place your code
+- Detect AprilTags using the `apriltag` Python library.
+- Estimate each tag's 3D pose using `cv2.solvePnP`.
+- Publish:
+  - Tag detections on `/apriltag_detections`
+  - Estimated poses on `/apriltag_poses`
+  - Semantic string messages on `/apriltag_messages`
+- Broadcast TF transforms between frames.
 
-Place your code in the directory `/packages/` of
-your new repository.
+### Example tag-based messages
 
+| Tag ID | Message |
+|--------|---------|
+| 2      | "lucky says to yield" |
+| 6      | "lucky says to go right" |
+| 7      | "lucky says to go left" |
+| 20     | "lucky says to stop" |
+| 74     | "lucky says to wait for the traffic light" |
+| 96     | "lucky says to slow down" |
 
-### 5. Setup launchers
+---
 
-The directory `/launchers` can contain as many launchers (launching scripts)
-as you want. A default launcher called `default.sh` must always be present.
+## 📦 Project Structure
 
-If you create an executable script (i.e., a file with a valid shebang statement)
-a launcher will be created for it. For example, the script file 
-`/launchers/my-launcher.sh` will be available inside the Docker image as the binary
-`dt-launcher-my-launcher`.
+```
+.
+├── launchers/
+│   ├── default.sh
+│   ├── tag_publisher_launch.sh
+│   └── tag_subscriber_launch.sh
+├── packages/
+│   └── [your ROS packages here]
+├── dependencies-apt.txt
+├── dependencies-py3.txt
+└── README.md
+```
 
-When launching a new container, you can simply provide `dt-launcher-my-launcher` as
-command.
+---
+
+## 📋 Dependencies
+
+### System packages (via APT)
+
+List in `dependencies-apt.txt`:
+- `ros-${ROS_DISTRO}-cv-bridge`
+- `ros-${ROS_DISTRO}-image-transport`
+- `ros-${ROS_DISTRO}-tf`
+
+### Python packages (via pip)
+
+List in `dependencies-py3.txt`:
+- `opencv-python`
+- `numpy`
+- `apriltag`
+
+---
+
+## 🛠 Configuration Notes
+
+- Default tag size: `0.065 m` (6.5 cm). Update this value in code if your tags are a different size.
+- The camera calibration matrix and distortion coefficients are currently hardcoded — update them for better accuracy.
+
+---
+
+## 🌱 Future Work
+
+- [x] AprilTag detection and pose publishing
+- [ ] SLAM implementation (original goal, not yet implemented)
+- [ ] Full behavior control based on detected tags
+
+---
+
+## 📸 Demo
+
+*Coming soon — add a screenshot or link to a video here.*
+
+---
+
+## 📜 License
+
+Licensed under the [MIT License](LICENSE).
+
+---
