@@ -4,7 +4,7 @@ This repository is based on the [Duckietown ROS Template](https://github.com/duc
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 Ensure You are running the commands below in separate terminals.
 
@@ -28,7 +28,7 @@ dts devel run -H lucky -L tag_subscriber_launch -n subscriber
 
 ---
 
-## 🧠 Functionality
+##  Functionality
 
 The system uses the robot's camera to:
 
@@ -53,7 +53,7 @@ The system uses the robot's camera to:
 
 ---
 
-## 📦 Project Structure
+##  Project Structure
 
 ```
 ├── assets/
@@ -80,10 +80,10 @@ The system uses the robot's camera to:
 
 ---
 
-## 📋 Dependencies
+##  Dependencies
 
 
-### 🛠 APT Packages (in `dependencies-apt.txt`)
+###  APT Packages (in `dependencies-apt.txt`)
 
 ```txt
 libopencv-dev
@@ -93,7 +93,7 @@ ros-noetic-tf2-geometry-msgs
 
 ---
 
-### 📦 Python Packages (in `dependencies-py3.txt`)
+###  Python Packages (in `dependencies-py3.txt`)
 
 ```txt
 apriltag
@@ -103,10 +103,11 @@ transforms3d
 scipy>=1.7.0
 ```
 
-## 🛠 Configuration Notes
+##  Configuration Notes
 
-- Default tag size: `0.065 m` (6.5 cm). Update this value in code if your tags are a different size.
-- The camera calibration matrix and distortion coefficients are currently hardcoded — update them for better accuracy.
+- The camera calibration matrix and distortion coefficients need to be replaced with your own robot's calibration values. 
+- We used the default tag size: `0.065 m` (6.5 cm). 
+
 
 ---
 
