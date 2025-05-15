@@ -6,7 +6,7 @@ This repository is based on the [Duckietown ROS Template](https://github.com/duc
 
 ## 🚀 Quick Start
 
-Ensure you're in a development container and source the environment.
+Ensure You are running the commands below in separate terminals.
 
 ### Build the container
 
@@ -56,14 +56,24 @@ The system uses the robot's camera to:
 ## 📦 Project Structure
 
 ```
-.
+├── assets/
+├── docs/
+├── html/ 
+│  
+│  
 ├── launchers/
 │   ├── default.sh
 │   ├── tag_publisher_launch.sh
 │   └── tag_subscriber_launch.sh
 ├── packages/
-│   └── [your ROS packages here]
+│   └── [ROS packages here]:luckieduckie_tag_lf
+│       ├──src/
+│       │  ├──tag_publisher.py
+│       │  └──tag_publisher.py
+│       ├──CMakeLists.txt
+│       └── package.xml
 ├── dependencies-apt.txt
+├── dependencies-py3.txt
 ├── dependencies-py3.txt
 └── README.md
 ```
@@ -72,21 +82,26 @@ The system uses the robot's camera to:
 
 ## 📋 Dependencies
 
-### System packages (via APT)
 
-List in `dependencies-apt.txt`:
-- `ros-${ROS_DISTRO}-cv-bridge`
-- `ros-${ROS_DISTRO}-image-transport`
-- `ros-${ROS_DISTRO}-tf`
+### 🛠 APT Packages (in `dependencies-apt.txt`)
 
-### Python packages (via pip)
-
-List in `dependencies-py3.txt`:
-- `opencv-python`
-- `numpy`
-- `apriltag`
+```txt
+libopencv-dev
+python3-opencv
+ros-noetic-tf2-geometry-msgs
+```
 
 ---
+
+### 📦 Python Packages (in `dependencies-py3.txt`)
+
+```txt
+apriltag
+numpy
+opencv-python
+transforms3d
+scipy>=1.7.0
+```
 
 ## 🛠 Configuration Notes
 
@@ -95,22 +110,3 @@ List in `dependencies-py3.txt`:
 
 ---
 
-## 🌱 Future Work
-
-- [x] AprilTag detection and pose publishing
-- [ ] SLAM implementation (original goal, not yet implemented)
-- [ ] Full behavior control based on detected tags
-
----
-
-## 📸 Demo
-
-*Coming soon — add a screenshot or link to a video here.*
-
----
-
-## 📜 License
-
-Licensed under the [MIT License](LICENSE).
-
----
