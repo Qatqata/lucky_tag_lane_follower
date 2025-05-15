@@ -15,27 +15,28 @@ import math
 
 class AprilTagPublisher:
     def __init__(self):
-        # Initialize the running flag first
+        # Initializing the running flag 
         self.running = True
 
         rospy.init_node('april_tag_publisher_node')
 
-        # Get the robot name from the environment variable
+        # Getting the robot name from the environment variable
         self.robot_name = rospy.get_param('~veh', 'lucky')
 
-        # Subscribe to the camera image topic
+        # Subscribing to the camera image topic
         self.sub = rospy.Subscriber(f'/{self.robot_name}/camera_node/image/compressed', CompressedImage, self.image_callback)
-        # Publish the AprilTag detections
+        # Publishing the AprilTag detections
         self.pub = rospy.Publisher('/apriltag_detections', AprilTagDetectionArray, queue_size=10)
-        # Publish the tag poses
+        # Publishing the tag poses
         self.pose_pub = rospy.Publisher('/apriltag_poses', PoseStamped, queue_size=10)
-        # Publish tag messages based on pose
+        # Publishing tag messages based on pose
         self.message_pub = rospy.Publisher('/apriltag_messages', String, queue_size=10)
         
+        # Printing the initialized publishers
         rospy.loginfo("Initialized pose publisher on topic /apriltag_poses")
         rospy.loginfo("Initialized message publisher on topic /apriltag_messages")
 
-        # Initialize TF broadcaster and listener
+        # Initializing TF broadcaster and listener
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.tf_listener = tf.TransformListener()
 
@@ -50,7 +51,7 @@ class AprilTagPublisher:
         # AprilTag size in meters (you'll need to adjust this based on your tag size)
         self.tag_size = 0.065  # 6.5cm tags
 
-        # Initialize the AprilTag detector with options
+        # Initializing the AprilTag detector with options
         try:
             options = apriltag.DetectorOptions(families="tag36h11")  # Common tag family for Duckietown
             self.detector = apriltag.Detector(options)
@@ -59,7 +60,7 @@ class AprilTagPublisher:
             rospy.logerr(f"Failed to initialize AprilTag Detector: {e}")
             raise
 
-        # Register shutdown hook
+        # Stopping the node when the program is closed
         rospy.on_shutdown(self.shutdown)
 
         rospy.loginfo("AprilTag Publisher Node Started (Duckietown)")
@@ -78,7 +79,7 @@ class AprilTagPublisher:
         transform.header.stamp = stamp
         transform.header.frame_id = self.robot_name
         transform.child_frame_id = "camera_optical_frame"
-        # Set the transform (you might need to adjust these values based on your robot's configuration)
+        # Setting the transform (you might need to adjust these values based on your robot's configuration)
         transform.transform.translation.x = 0.0
         transform.transform.translation.y = 0.0
         transform.transform.translation.z = 0.0
@@ -90,7 +91,7 @@ class AprilTagPublisher:
 
     def generate_message_from_pose(self, tag_id, pose):
         """Generate a message based on the tag ID and pose"""
-        # First, handle the specific tag IDs with predefined messages
+        # handling the specific tag IDs with predefined messages  
         if tag_id == 2:
             return "lucky says to yield"
         
@@ -115,13 +116,13 @@ class AprilTagPublisher:
         y = pose.position.y
         z = pose.position.z
         
-        # Calculate distance from the camera
+        # Calculating distance from the camera
         distance = math.sqrt(x*x + y*y + z*z)
         
-        # Calculate horizontal angle (in degrees)
+        # Calculating horizontal angle (in degrees)
         angle_horizontal = math.degrees(math.atan2(y, x))
         
-        # Generate messages based on tag_id and pose
+        # Generating messages based on tag_id and pose
         if tag_id == 0:
             if distance < 0.3:
                 return f"Tag 0 is very close: {distance:.2f}m"
@@ -150,16 +151,16 @@ class AprilTagPublisher:
         if not self.running:
             return
 
-        # Get the current time once for all messages
+        # Getting the current time once for all messages
         current_time = rospy.Time.now()
         
         # Publish the camera transform
         self.publish_camera_transform(current_time)
 
         try:
-            # Convert the compressed image data to a NumPy array
+            # Converting the compressed image data to a NumPy array
             np_arr = np.frombuffer(msg.data, np.uint8)
-            # Decode the image data using OpenCV
+            # Decoding the image data using OpenCV
             image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         except Exception as e:
             rospy.logerr(f"Error decoding image: {e}")
@@ -176,33 +177,33 @@ class AprilTagPublisher:
             rospy.logerr(f"Error detecting AprilTags: {e}")
             return
 
-        # Create an AprilTagDetectionArray message
+        # Creating an AprilTagDetectionArray message
         detection_array = AprilTagDetectionArray()
 
-        # Iterate through the detected AprilTags
+        # Iterating through the detected AprilTags
         for det in detections:
             detection = AprilTagDetection()
-            detection.tag_id = int(det.tag_id)  # Store the tag ID as an integer
+            detection.tag_id = int(det.tag_id)  # Storing the tag ID as an integer
             detection.tag_family = det.tag_family.decode('utf-8')  # e.g., 'tag36h11'
             detection.hamming = det.hamming  # Hamming distance
             detection.decision_margin = det.decision_margin  # Detection confidence
-            # Store the corner points of the tag
+            # Storing the corner points of the tag
             detection.corners = [det.corners[0][0], det.corners[0][1],
                                det.corners[1][0], det.corners[1][1],
                                det.corners[2][0], det.corners[2][1],
                                det.corners[3][0], det.corners[3][1]]
-            # Store the center point of the tag
+            # Storing the center point of the tag
             detection.center = [det.center[0], det.center[1]]
-            # Populate homography
+            # Populating homography
             detection.homography = det.homography.flatten().tolist()
             detection_array.detections.append(detection)
 
-            # Estimate pose
+            # Estimating pose
             try:
-                # Convert corners to numpy array
+                # Converting corners to numpy array
                 corners = np.array(det.corners, dtype=np.float32)
                 
-                # Estimate pose using solvePnP
+                # Estimating pose using solvePnP
                 obj_points = np.array([
                     [-self.tag_size/2, -self.tag_size/2, 0],
                     [self.tag_size/2, -self.tag_size/2, 0],
@@ -221,7 +222,7 @@ class AprilTagPublisher:
                     # Convert rotation vector to rotation matrix
                     R, _ = cv2.Rodrigues(rvec)
                     
-                    # Create pose message
+                    # Creating pose message
                     pose_msg = PoseStamped()
                     pose_msg.header.stamp = current_time
                     pose_msg.header.frame_id = "camera_optical_frame"
@@ -231,24 +232,24 @@ class AprilTagPublisher:
                     pose_msg.pose.position.y = tvec[1][0]
                     pose_msg.pose.position.z = tvec[2][0]
                     
-                    # Convert rotation matrix to quaternion
+                    # Converting rotation matrix to quaternion
                     pose_msg.pose.orientation.w = np.sqrt(1 + R[0,0] + R[1,1] + R[2,2]) / 2
                     pose_msg.pose.orientation.x = (R[2,1] - R[1,2]) / (4 * pose_msg.pose.orientation.w)
                     pose_msg.pose.orientation.y = (R[0,2] - R[2,0]) / (4 * pose_msg.pose.orientation.w)
                     pose_msg.pose.orientation.z = (R[1,0] - R[0,1]) / (4 * pose_msg.pose.orientation.w)
                     
-                    # Publish the pose
+                    # Publishing the pose  
                     if self.running:
                         self.pose_pub.publish(pose_msg)
                         rospy.loginfo(f"Published pose for tag {det.tag_id}")
                     
-                    # Generate and publish message based on pose
+                    # Generating and publishing message based on pose
                     message = self.generate_message_from_pose(det.tag_id, pose_msg.pose)
                     if self.running:
                         self.message_pub.publish(message)
                         rospy.loginfo(f"Message: {message}")
                         
-                        # Print specific messages for the requested tag IDs
+                        # Printing specific messages for the requested tag IDs
                         if det.tag_id == 2:
                             print("lucky says to yield")
                         elif det.tag_id == 74:
@@ -260,9 +261,9 @@ class AprilTagPublisher:
                     
                     # Try to transform the pose to the robot's frame
                     try:
-                        # Wait for transform
+                        # Waiting for transform
                         self.tf_listener.waitForTransform(self.robot_name, "camera_optical_frame", current_time, rospy.Duration(1.0))
-                        # Transform the pose
+                        # Transforming the pose
                         pose_transformed = self.tf_listener.transformPose(self.robot_name, pose_msg)
                         rospy.loginfo(f"Tag {det.tag_id} pose in robot frame:{pose_transformed.pose}")
                     except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
@@ -271,7 +272,7 @@ class AprilTagPublisher:
             except Exception as e:
                 rospy.logerr(f"Error estimating pose for tag {det.tag_id}: {e}")
 
-        # Publish the AprilTag detection array
+        # Publishing the AprilTag detection array
         if self.running: #check it is running by itself to avoid error at the end 
             self.pub.publish(detection_array)
             rospy.loginfo(f"Published {len(detections)} detections")

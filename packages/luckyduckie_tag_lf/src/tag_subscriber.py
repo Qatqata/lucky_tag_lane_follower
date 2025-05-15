@@ -22,7 +22,7 @@ class IntegratedDuckieController:
         self.robot_name = rospy.get_param('~veh', 'lucky')
         self.running = True
 
-        # Initialize CV bridge
+        # Initializing the CV bridge
         self.bridge = CvBridge()
 
         # Subscribers
@@ -57,22 +57,22 @@ class IntegratedDuckieController:
                                                  queue_size=10)
 
         # Control Parameters
-        self.base_speed = rospy.get_param('~base_speed', 0.35)    # Base forward speed
-        self.max_speed = rospy.get_param('~max_speed', 0.45)      # Maximum speed limit
-        self.kp = rospy.get_param('~kp', 0.2)                    # Moderate proportional gain
-        self.ki = rospy.get_param('~ki', 0.01)                   # Small integral gain
-        self.kd = rospy.get_param('~kd', 0.08)                   # Increased derivative for better damping
+        self.base_speed = rospy.get_param('~base_speed', 0.35)    # normal speed
+        self.max_speed = rospy.get_param('~max_speed', 0.45)      # max speed limit
+        self.kp = rospy.get_param('~kp', 0.2)                    # proportional gain (response to error)
+        self.ki = rospy.get_param('~ki', 0.01)                   # integral gain (accumulated error)
+        self.kd = rospy.get_param('~kd', 0.08)                   # Increased derivative (for better damping)
         self.integral_limit = rospy.get_param('~integral_limit', 0.2)
-        self.smoothing_factor = rospy.get_param('~smoothing_factor', 0.4)  # Moderate smoothing
+        self.smoothing_factor = rospy.get_param('~smoothing_factor', 0.4)  # Smoothing factor
         self.corner_speed_factor = rospy.get_param('~corner_speed_factor', 0.6)  # Speed reduction in corners
         
-        # Line Detection Parameters
-        self.white_lower = np.array([0, 0, 200])  # HSV lower bound for white
-        self.white_upper = np.array([180, 50, 255])  # HSV upper bound for white
+        # Line Detection Parameters for detecting white lines
+        self.white_lower = np.array([0, 0, 200])  
+        self.white_upper = np.array([180, 50, 255])  
         self.roi_height = rospy.get_param('~roi_height', 2)
         self.line_threshold = rospy.get_param('~line_threshold', 200)
 
-        # State variables
+        # State variables for actions
         self.tag_detected = False
         self.tag_action = None
         self.line_detected = False
@@ -86,13 +86,13 @@ class IntegratedDuckieController:
         self.smoothed_control = 0.0  # For control output smoothing
         
         # Tag handling parameters
-        self.tag_stop_duration = rospy.Duration(2.0)  # Stop for 2 seconds when tag detected
-        self.tag_cooldown_duration = rospy.Duration(10.0)  # Ignore tags for 25 seconds after action
+        self.tag_stop_duration = rospy.Duration(2.0)  # Stops duckiebot 2 seconds when tag detected
+        self.tag_cooldown_duration = rospy.Duration(10.0)  # Ignores tags for 10 seconds after action
         self.last_tag_time = rospy.Time.now()
         self.tag_action_active = False
         self.tag_cooldown_active = False
 
-        # SLAM variables
+        # SLAM variables (which were not used)
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.tag_poses = {}
@@ -105,24 +105,24 @@ class IntegratedDuckieController:
         self.marker_array = MarkerArray()
         self.marker_id = 0
 
-        rospy.on_shutdown(self.shutdown)
-        rospy.loginfo("Integrated Duckie Controller Started")
+        rospy.on_shutdown(self.shutdown) # shuts down the node when the program is closed
+        rospy.loginfo("Integrated Duckie Controller Started") # logs the start of the node
 
-    def shutdown(self):
+    def shutdown(self): # shuts down the node when the program is closed
         """Clean shutdown of the node"""
         rospy.loginfo("Shutting down Integrated Duckie Controller...")
         self.running = False
         self.send_wheel_command(0.0, 0.0)
 
-    def detect_line(self, image):
+    def detect_line(self, image): # detects the white line using HSV thresholding and returns the line position
         """Detect white line using HSV thresholding and return line position"""
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, self.white_lower, self.white_upper)
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) # converts the image to HSV color space
+        mask = cv2.inRange(hsv, self.white_lower, self.white_upper) # creates a mask for the white line
         
-        height, width = mask.shape
-        roi = mask[height - height//self.roi_height:, :]
+        height, width = mask.shape # gets the height and width of the mask
+        roi = mask[height - height//self.roi_height:, :] # gets the region of interest (ROI)
         
-        # Create debug visualization
+        # Creating debug visualization
         debug_image = cv2.cvtColor(roi, cv2.COLOR_GRAY2BGR)
         
         # Find line center using weighted average
@@ -134,7 +134,7 @@ class IntegratedDuckieController:
             self.line_detected = True
             line_position = (weighted_x - width/2) / (width/2)  # Normalize to [-1, 1]
             
-            # Draw debug visualization
+            # Drawing debug visualization
             cv2.line(debug_image, (int(weighted_x), 0), 
                     (int(weighted_x), debug_image.shape[0]), (0, 255, 0), 2)
             cv2.putText(debug_image, f"Center: {weighted_x:.1f}", (10, 30),
@@ -145,7 +145,7 @@ class IntegratedDuckieController:
             cv2.putText(debug_image, "No line detected", (10, 30),
                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-        # Publish debug image
+        # Publishing debug image
         _, encoded = cv2.imencode('.jpg', debug_image)
         debug_msg = CompressedImage()
         debug_msg.header.stamp = rospy.Time.now()
@@ -171,41 +171,41 @@ class IntegratedDuckieController:
 
         current_time = rospy.Time.now()
 
-        # Handle tag detection and actions
+        # Tag detection and actions
         if self.tag_detected and not self.tag_cooldown_active:
             time_since_tag = current_time - self.last_tag_time
             
-            # If we're within the stop duration, stop the robot
+            # If duckiebot is within the stop duration, stop the robot
             if time_since_tag < self.tag_stop_duration:
                 self.tag_action_active = True
-                # Different behavior based on tag type
+                # Different actions for different tags (turning for turns, stopping for others), and printing messages
                 if self.tag_action and "slow down" in self.tag_action:
-                    self.send_wheel_command(0.0, 0.0)  # Slow movement
+                    self.send_wheel_command(0.0, 0.0)  
                     rospy.loginfo("Slowing down for tag")
                 elif self.tag_action and "stop" in self.tag_action:
-                    self.send_wheel_command(0.0, 0.0)  # Complete stop
+                    self.send_wheel_command(0.0, 0.0)  
                     rospy.loginfo(f"Stopping for tag action: {self.tag_action}")
                 elif self.tag_action and "yield" in self.tag_action:
-                    self.send_wheel_command(0.0, 0.0)  # Complete stop
+                    self.send_wheel_command(0.0, 0.0)  
                     rospy.loginfo(f"Stopping for tag action: {self.tag_action}")
                 elif self.tag_action and "wait" in self.tag_action:
-                    self.send_wheel_command(0.0, 0.0)  # Complete stop
+                    self.send_wheel_command(0.0, 0.0)  
                     rospy.loginfo(f"Stopping for tag action: {self.tag_action}")
                 elif self.tag_action and "go right" in self.tag_action:
-                    self.send_wheel_command(0.2, -0.2)  # Complete stop
+                    self.send_wheel_command(0.2, -0.2)  
                     rospy.loginfo(f"Stopping for tag action: {self.tag_action}")
                 elif self.tag_action and "go left" in self.tag_action:
-                    self.send_wheel_command(-0.2, 0.2)  # Complete stop
+                    self.send_wheel_command(-0.2, 0.2)  
                     rospy.loginfo(f"Stopping for tag action: {self.tag_action}")
                 return
             else:
-                # Stop duration is over, activate cooldown and resume normal operation
+                # When stop duration is over, activates cooldown and resume normal moving
                 self.tag_action_active = False
                 self.tag_cooldown_active = True
                 self.last_tag_time = current_time  # Reset timer for cooldown
                 rospy.loginfo("Tag stop complete, entering cooldown period")
 
-        # Check if we're in cooldown period
+        # Checking if bot is in cooldown period
         if self.tag_cooldown_active:
             time_since_action = current_time - self.last_tag_time
             if time_since_action >= self.tag_cooldown_duration:
@@ -216,11 +216,11 @@ class IntegratedDuckieController:
 
         # Normal line following if no tag action is active
         if self.line_detected:
-            # Line following control with improved corner handling
+            # Line following control with improved corner turning
             dt = (current_time - self.last_time).to_sec()
             self.last_time = current_time
 
-            # Rest of the line following code remains the same
+            # Rest of the line following code is the same
             derivative = (line_position - self.last_error) / max(dt, 0.01)
             derivative = np.clip(derivative, -1.0, 1.0)
             self.last_error = line_position
@@ -272,7 +272,7 @@ class IntegratedDuckieController:
         msg.vel_right = right_speed
         self.wheel_pub.publish(msg)
         
-        # Print wheel speeds for monitoring
+        # Printing wheel speeds 
         rospy.loginfo(f"Wheel speeds - Left: {left_speed:.3f}, Right: {right_speed:.3f}")
 
     def image_callback(self, msg):
@@ -291,14 +291,14 @@ class IntegratedDuckieController:
     def tag_callback(self, msg):
         """Handle AprilTag detections"""
         try:
-            # Check if we're in the cooldown period
+            # Check if duckiebot in the cooldown period
             if self.tag_cooldown_active:
                 time_since_action = rospy.Time.now() - self.last_tag_time
                 if time_since_action < self.tag_cooldown_duration:
-                    # Still in cooldown, ignore tag detections
+                    # If still in cooldown, ignores tag detections
                     return
                 else:
-                    # Cooldown period over
+                    # Cooldown period is over
                     self.tag_cooldown_active = False
 
             if len(msg.detections) > 0:
@@ -315,7 +315,7 @@ class IntegratedDuckieController:
                 
                 rospy.loginfo(f"Detected AprilTag {self.current_tag_id}")
             else:
-                # Only reset tag detection if we're not in an active tag action
+                # Only reset tag detection if not in an active tag action
                 if not self.tag_action_active and not self.tag_cooldown_active:
                     self.tag_detected = False
                     self.current_tag_id = None
@@ -342,7 +342,7 @@ class IntegratedDuckieController:
         """Handle odometry updates"""
         current_odom_pose = msg.pose.pose
         if self.last_odom_pose is not None:
-            # Store robot pose for SLAM
+            # Store robots pose for SLAM
             self.robot_poses.append(current_odom_pose)
             
             # Periodically optimize pose graph
@@ -353,15 +353,7 @@ class IntegratedDuckieController:
         
         self.last_odom_pose = current_odom_pose
 
-    def optimize_pose_graph(self):
-        """Optimize the pose graph for SLAM"""
-        if len(self.robot_poses) < 2 or not self.tag_observations:
-            return
-
-        # Implementation of pose graph optimization would go here
-        # This is a placeholder for the actual optimization code
-        pass
-
+   
     def update_visualization(self):
         """Update visualization markers"""
         # Clear existing markers
@@ -376,6 +368,7 @@ class IntegratedDuckieController:
         # Publish markers
         self.marker_pub.publish(self.marker_array)
 
+    #For working with Rviz
     def create_marker(self, tag_id, pose, color):
         """Create a visualization marker for an AprilTag"""
         marker = Marker()
