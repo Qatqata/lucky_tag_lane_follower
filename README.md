@@ -1,4 +1,4 @@
-# AprilTag Detection with Duckiebot — ROS Template
+# AprilTag Detection with Duckiebot 
 
 This repository is based on the [Duckietown ROS Template](https://github.com/duckietown/template-ros) and is used to detect AprilTags on a Duckiebot. The robot can interpret tag positions and publish relevant messages or transformations. Originally intended for SLAM, this project shifted focus solely to AprilTag detection and reaction due to time constraints.
 
@@ -106,6 +106,7 @@ scipy>=1.7.0
 ##  Configuration Notes
 
 - The camera calibration matrix and distortion coefficients need to be replaced with your own robot's calibration values. 
+- add the name of your robot to the topics
 - We used the default tag size: `0.065 m` (6.5 cm). 
 
 
